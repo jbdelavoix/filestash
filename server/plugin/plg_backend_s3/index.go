@@ -16,7 +16,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	. "github.com/mickael-kerjean/filestash/server/common"
 
+	"crypto/tls"
 	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -72,11 +74,21 @@ func (s S3Backend) Init(params map[string]string, app *App) (IBackend, error) {
 		&ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(session.Must(session.NewSession()))},
 		&credentials.EnvProvider{},
 	)
+
+	var httpClient *http.Client
+
+	httpClient = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: params["verify_ssl"] != "true"},
+		},
+	}
+
 	config := &aws.Config{
 		Credentials:                   credentials.NewChainCredentials(creds),
 		CredentialsChainVerboseErrors: aws.Bool(true),
-		S3ForcePathStyle:              aws.Bool(params["url_style"] == "path-style"),
+		HTTPClient:                    httpClient,
 		Region:                        aws.String(params["region"]),
+		S3ForcePathStyle:              aws.Bool(params["url_style"] == "path-style"),
 	}
 
 	if params["endpoint"] != "" {
@@ -114,7 +126,7 @@ func (s S3Backend) LoginForm() Form {
 				Name:        "advanced",
 				Type:        "enable",
 				Placeholder: "Advanced",
-				Target:      []string{"s3_role_arn", "s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint", "s3_url_style"},
+				Target:      []string{"s3_role_arn", "s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint", "s3_url_style", "s3_verify_ssl"},
 			},
 			FormElement{
 				Id:          "s3_role_arn",
@@ -160,6 +172,13 @@ func (s S3Backend) LoginForm() Form {
 				Opts:        []string{"path-style", "virtual-hosted-style"},
 				Placeholder: "S3 URL Style",
 			},
+			FormElement{
+				Id:          "s3_verify_ssl",
+				Name:        "verify_ssl",
+				Type:        "boolean",
+				Default:     true,
+				Placeholder: "Verify SSL certificate",
+			},
 		},
 	}
 }
@@ -183,6 +202,7 @@ func (s S3Backend) Ls(path string) (files []os.FileInfo, err error) {
 	if p.bucket == "" {
 		b, err := s.client.ListBuckets(&s3.ListBucketsInput{})
 		if err != nil {
+			Log.Warning("s3: error listing buckets: %v", err)
 			return nil, err
 		}
 		for _, bucket := range b.Buckets {

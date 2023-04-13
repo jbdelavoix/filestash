@@ -264,8 +264,12 @@ const FormElement = ({
         break;
     case "boolean":
         $input = (
-            <Input onChange={(e) => props.onChange(e.target.checked)} {...id} name={struct.label}
-                type="checkbox" checked={struct.value === null ? !!struct.default : struct.value} />
+            <label>
+                <Input onChange={(e) => props.onChange(e.target.checked)} {...id} name={struct.label}
+                    type="checkbox" checked={struct.value === null ? !!struct.default : struct.value}>
+                </Input>
+                <span>{ t(struct.placeholder) }</span>
+            </label>
         );
         break;
     case "select":

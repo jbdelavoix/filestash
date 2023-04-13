@@ -100,6 +100,7 @@
     "TODO": "todo",
     "UPLOADER": "uploader",
     "USERNAME": "nom d'utilisateur",
+    "VERIFY_SSL_CERTIFICATE": "verifier le certificat SSL",
     "VIEWER": "viewer",
     "WAITING": "attente",
     "YES": "oui",

@@ -1,40 +1,34 @@
-# STEP1: CLONE THE CODE
-FROM alpine:latest as builder_prepare
-WORKDIR /home/
-RUN apk add git && \
-    git clone --depth 1 https://github.com/mickael-kerjean/filestash
-
-# STEP2: BUILD THE FRONTEND
+# STEP1: BUILD THE FRONTEND
 FROM node:13-alpine AS builder_frontend
 WORKDIR /home/
-COPY --from=builder_prepare /home/filestash/ ./
+COPY . /home/filestash/
 RUN apk add make git && \
+    cd filestash/ && \
     npm install --silent && \
     make build_frontend
 
-# STEP3: BUILD THE BACKEND
+# STEP2: BUILD THE BACKEND
 FROM golang:1.19-buster AS builder_backend
 WORKDIR /home/
-COPY --from=builder_frontend /home/ ./
+COPY --from=builder_frontend /home/filestash/ /home/filestash/
 RUN apt-get update > /dev/null && \
     apt-get install -y libvips-dev curl make > /dev/null 2>&1 && \
+    cd filestash/ && \
     make build_init && \
     make build_backend && \
     mkdir -p ./dist/data/state/config/ && \
     cp config/config.json ./dist/data/state/config/config.json
 
-# STEP4: Create the prod image from the build
+# STEP3: Create the prod image from the build
 FROM debian:stable-slim
 MAINTAINER mickael@kerjean.me
-COPY --from=builder_backend /home/dist/ /app/
+COPY --from=builder_backend /home/filestash/dist/ /app/
+COPY ./server/.assets/emacs/htmlize.el /usr/share/emacs/site-lisp/
+COPY ./server/.assets/emacs/ox-gfm.el /usr/share/emacs/site-lisp/
 WORKDIR "/app"
 RUN apt-get update > /dev/null && \
     apt-get install -y --no-install-recommends apt-utils && \
     apt-get install -y curl emacs-nox ffmpeg zip poppler-utils > /dev/null && \
-    # org-mode: html export
-    curl https://raw.githubusercontent.com/mickael-kerjean/filestash/master/server/.assets/emacs/htmlize.el > /usr/share/emacs/site-lisp/htmlize.el && \
-    # org-mode: markdown export
-    curl https://raw.githubusercontent.com/mickael-kerjean/filestash/master/server/.assets/emacs/ox-gfm.el > /usr/share/emacs/site-lisp/ox-gfm.el && \
     # org-mode: pdf export (with a light latex distribution)
     cd && apt-get install -y wget perl > /dev/null && \
     export CTAN_REPO="http://mirror.las.iastate.edu/tex-archive/systems/texlive/tlnet" && \
@@ -60,7 +54,7 @@ RUN apt-get update > /dev/null && \
     find /usr/share/emacs -name '*.pbm' | xargs rm -f && \
     find /usr/share/emacs -name '*.png' | xargs rm -f && \
     find /usr/share/emacs -name '*.xpm' | xargs rm -f
-    
+
 RUN useradd filestash && \
     chown -R filestash:filestash /app/ && \
     rm -rf /var/lib/apt/lists/* && \

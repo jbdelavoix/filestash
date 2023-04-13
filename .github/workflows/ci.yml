@@ -179,8 +179,7 @@ jobs:
     - name: Run
       run: |
         export COMMIT_SHA=`git rev-parse --short HEAD`
-        cd docker
-        docker build --tag machines/filestash:latest .
+        docker build -f docker/Dockerfile --tag machines/filestash:latest .
         docker tag machines/filestash:latest machines/filestash:$COMMIT_SHA
         docker push machines/filestash:latest
         docker push machines/filestash:$COMMIT_SHA

@@ -179,20 +179,7 @@ jobs:
     - name: Run
       run: |
         export COMMIT_SHA=`git rev-parse --short HEAD`
-        docker build -f docker/Dockerfile --tag machines/filestash:latest .
-        docker tag machines/filestash:latest machines/filestash:$COMMIT_SHA
-        docker push machines/filestash:latest
-        docker push machines/filestash:$COMMIT_SHA
-
-  deploy:
-    if: github.ref == 'refs/heads/master'
-    needs: release_docker
-    runs-on: ubuntu-latest
-    steps:
-    - name: Setup
-      uses: Azure/k8s-set-context@v1
-      with:
-        method: kubeconfig
-        kubeconfig: ${{ secrets.KUBE_CONFIG }}
-    - name: Deploy
-      run: kubectl rollout restart deployment app-filestash-demo -n filestash
+        docker build -f docker/Dockerfile --tag jbdelavoix/filestash:latest .
+        docker tag jbdelavoix/filestash:latest jbdelavoix/filestash:$COMMIT_SHA
+        docker push jbdelavoix/filestash:latest
+        docker push jbdelavoix/filestash:$COMMIT_SHA

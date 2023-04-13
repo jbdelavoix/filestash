@@ -75,9 +75,10 @@ func (s S3Backend) Init(params map[string]string, app *App) (IBackend, error) {
 	config := &aws.Config{
 		Credentials:                   credentials.NewChainCredentials(creds),
 		CredentialsChainVerboseErrors: aws.Bool(true),
-		S3ForcePathStyle:              aws.Bool(true),
+		S3ForcePathStyle:              aws.Bool(params["url_style"] == "path-style"),
 		Region:                        aws.String(params["region"]),
 	}
+
 	if params["endpoint"] != "" {
 		config.Endpoint = aws.String(params["endpoint"])
 	}
@@ -113,7 +114,7 @@ func (s S3Backend) LoginForm() Form {
 				Name:        "advanced",
 				Type:        "enable",
 				Placeholder: "Advanced",
-				Target:      []string{"s3_role_arn", "s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint"},
+				Target:      []string{"s3_role_arn", "s3_path", "s3_session_token", "s3_encryption_key", "s3_region", "s3_endpoint", "s3_url_style"},
 			},
 			FormElement{
 				Id:          "s3_role_arn",
@@ -150,6 +151,14 @@ func (s S3Backend) LoginForm() Form {
 				Name:        "endpoint",
 				Type:        "text",
 				Placeholder: "Endpoint",
+			},
+			FormElement{
+				Id:          "s3_url_style",
+				Name:        "url_style",
+				Type:        "select",
+				Default:     "path-style",
+				Opts:        []string{"path-style", "virtual-hosted-style"},
+				Placeholder: "S3 URL Style",
 			},
 		},
 	}

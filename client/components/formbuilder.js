@@ -270,9 +270,12 @@ const FormElement = ({
         break;
     case "select":
         $input = (
-            <Select onChange={(e) => props.onChange(e.target.value)} {...id} name={struct.label}
-                choices={struct.options} placeholder={ t(struct.placeholder) }
-                value={struct.value === null ? struct.default : struct.value} />
+            <label>
+                { t(struct.placeholder) }
+                <Select onChange={(e) => props.onChange(e.target.value)} {...id} name={struct.label}
+                    choices={struct.options} value={struct.value === null ? struct.default : struct.value}>
+                </Select>
+            </label>
         );
         break;
     case "enable":

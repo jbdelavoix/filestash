@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -269,10 +270,11 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 			formData[key] = values[0]
 		}
 	}
-	idpParams := map[string]string{}
+
+	rawIdpParams := map[string]any{}
 	if err := json.Unmarshal(
 		[]byte(Config.Get("middleware.identity_provider.params").String()),
-		&idpParams,
+		&rawIdpParams,
 	); err != nil {
 		http.Redirect(
 			res, req,
@@ -280,6 +282,18 @@ func SessionAuthMiddleware(ctx *App, res http.ResponseWriter, req *http.Request)
 			http.StatusTemporaryRedirect,
 		)
 		return
+	}
+
+	idpParams := map[string]string{}
+	for key, value := range rawIdpParams {
+		switch v := value.(type) {
+		case bool:
+			idpParams[key] = strconv.FormatBool(v)
+		case string:
+			idpParams[key] = v
+		default:
+			Log.Error("unsupported idp param type - %v key of type %T", key, v)
+		}
 	}
 
 	// Step1: Entrypoint of the authentication process is handled by the plugin

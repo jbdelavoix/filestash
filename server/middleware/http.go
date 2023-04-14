@@ -189,7 +189,7 @@ func EnableCors(req *http.Request, res http.ResponseWriter, host string) error {
 func RetrievePublicIp(req *http.Request) string {
 	if req.Header.Get("X-Forwarded-For") != "" {
 		return req.Header.Get("X-Forwarded-For")
-	} else { 
+	} else {
 		return req.RemoteAddr
 	}
 }

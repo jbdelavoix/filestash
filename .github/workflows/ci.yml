@@ -18,7 +18,7 @@ jobs:
     - name: Setup
       run: npm install
     - name: Build
-      run: make build_frontend
+      run: make build_frontend_all
     - uses: actions/upload-artifact@master
       with:
         name: build-frontend
@@ -42,8 +42,7 @@ jobs:
         cp config/config.json ./dist/data/state/config/
     - name: Build
       run: |
-        make build_init
-        make build_backend
+        make build_backend_all
     - uses: actions/upload-artifact@master
       with:
         name: build
@@ -181,6 +180,7 @@ jobs:
     - name: Run
       run: |
         export COMMIT_SHA=`git rev-parse --short HEAD`
+        make all
         docker build -f docker/Dockerfile --tag jbdelavoix/filestash:latest .
         docker tag jbdelavoix/filestash:latest jbdelavoix/filestash:$COMMIT_SHA
         docker push jbdelavoix/filestash:latest

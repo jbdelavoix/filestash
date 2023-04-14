@@ -1,31 +1,11 @@
-# STEP1: BUILD THE FRONTEND
-FROM node:13-alpine AS builder_frontend
-WORKDIR /home/
-COPY . /home/filestash/
-RUN apk add make git && \
-    cd filestash/ && \
-    npm install --silent && \
-    make build_frontend
-
-# STEP2: BUILD THE BACKEND
-FROM golang:1.19-buster AS builder_backend
-WORKDIR /home/
-COPY --from=builder_frontend /home/filestash/ /home/filestash/
-RUN apt-get update > /dev/null && \
-    apt-get install -y libvips-dev curl make > /dev/null 2>&1 && \
-    cd filestash/ && \
-    make build_init && \
-    make build_backend && \
-    mkdir -p ./dist/data/state/config/ && \
-    cp config/config.json ./dist/data/state/config/config.json
-
-# STEP3: Create the prod image from the build
 FROM debian:stable-slim
-MAINTAINER mickael@kerjean.me
-COPY --from=builder_backend /home/filestash/dist/ /app/
+
+COPY ./dist/ /app/
 COPY ./server/.assets/emacs/htmlize.el /usr/share/emacs/site-lisp/
 COPY ./server/.assets/emacs/ox-gfm.el /usr/share/emacs/site-lisp/
+
 WORKDIR "/app"
+
 RUN apt-get update > /dev/null && \
     apt-get install -y --no-install-recommends apt-utils && \
     apt-get install -y curl emacs-nox ffmpeg zip poppler-utils > /dev/null && \
@@ -61,5 +41,7 @@ RUN useradd filestash && \
     rm -rf /tmp/*
 
 USER filestash
-CMD ["/app/filestash"]
+
 EXPOSE 8334
+
+CMD ["/app/filestash"]

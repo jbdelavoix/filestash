@@ -30,15 +30,15 @@ RUN apt-get update > /dev/null && \
     ln -s /usr/share/tinytex/bin/x86_64-linux/pdflatex /usr/local/bin/pdflatex && \
     apt-get purge -y --auto-remove perl wget && \
     # Cleanup
+    rm -rf /var/lib/apt/lists/* && \
+    rm -rf /tmp/* && \
     find /usr/share/ -name 'doc' | xargs rm -rf && \
     find /usr/share/emacs -name '*.pbm' | xargs rm -f && \
     find /usr/share/emacs -name '*.png' | xargs rm -f && \
     find /usr/share/emacs -name '*.xpm' | xargs rm -f
 
 RUN useradd filestash && \
-    chown -R filestash:filestash /app/ && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm -rf /tmp/*
+    chown -R filestash:filestash /app/
 
 USER filestash
 

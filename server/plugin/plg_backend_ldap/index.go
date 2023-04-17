@@ -9,15 +9,17 @@ package plg_backend_ldap
  */
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	. "github.com/mickael-kerjean/filestash/server/common"
-	"gopkg.in/ldap.v3"
 	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	. "github.com/mickael-kerjean/filestash/server/common"
+	"gopkg.in/ldap.v3"
 )
 
 var LDAPCache AppCache
@@ -41,19 +43,29 @@ func (this LDAP) Init(params map[string]string, app *App) (IBackend, error) {
 		return obj.(*LDAP), nil
 	}
 
-	dialURL := func() string {
+	dialAddr := func() string {
 		if params["port"] == "" {
-			// default port will be set by the LDAP library
 			return params["hostname"]
 		}
 		return fmt.Sprintf("%s:%s", params["hostname"], params["port"])
 	}()
 
-	l, err := ldap.DialURL(dialURL)
+	var l *ldap.Conn
+	var err error
+
+	if params["use_ssl"] == "true" {
+		tlsConfig := &tls.Config{InsecureSkipVerify: params["verify_ssl"] != "true"}
+		l, err = ldap.DialTLS("tcp", dialAddr, tlsConfig)
+	} else {
+		l, err = ldap.Dial("tcp", dialAddr)
+	}
 	if err != nil {
+		Log.Warning("ldap: error connecting backend: %v", err)
 		return nil, err
 	}
+
 	if err = l.Bind(params["bind_dn"], params["bind_password"]); err != nil {
+		Log.Warning("ldap: error binding backend: %v", err)
 		return nil, err
 	}
 
@@ -76,37 +88,36 @@ func (this LDAP) LoginForm() Form {
 				Placeholder: "Hostname",
 			},
 			FormElement{
+				Name:        "port",
+				Type:        "text",
+				Placeholder: "Port",
+			},
+			FormElement{
+				Name:        "use_ssl",
+				Type:        "boolean",
+				Default:     true,
+				Placeholder: "Use SSL",
+			},
+			FormElement{
+				Name:        "verify_ssl",
+				Type:        "boolean",
+				Default:     true,
+				Placeholder: "Verify SSL certificate",
+			},
+			FormElement{
 				Name:        "bind_dn",
 				Type:        "text",
-				Placeholder: "bind DN",
+				Placeholder: "Bind DN",
 			},
 			FormElement{
 				Name:        "bind_password",
 				Type:        "password",
-				Placeholder: "Bind DN password",
+				Placeholder: "Bind password",
 			},
 			FormElement{
 				Name:        "base_dn",
 				Type:        "text",
 				Placeholder: "Base DN",
-			},
-			FormElement{
-				Name:        "advanced",
-				Type:        "enable",
-				Placeholder: "Advanced",
-				Target:      []string{"ldap_path", "ldap_port"},
-			},
-			FormElement{
-				Id:          "ldap_path",
-				Name:        "path",
-				Type:        "text",
-				Placeholder: "Path",
-			},
-			FormElement{
-				Id:          "ldap_port",
-				Name:        "port",
-				Type:        "number",
-				Placeholder: "Port",
 			},
 		},
 	}

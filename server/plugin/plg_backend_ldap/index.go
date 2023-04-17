@@ -16,7 +16,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/mickael-kerjean/filestash/server/common"
 	"gopkg.in/ldap.v3"
@@ -63,6 +65,14 @@ func (this LDAP) Init(params map[string]string, app *App) (IBackend, error) {
 		Log.Warning("ldap: error connecting backend: %v", err)
 		return nil, err
 	}
+
+	request_timeout := 5
+	if params["request_timeout"] != "" {
+		if i, err := strconv.Atoi(params["request_timeout"]); err == nil && i > 0 {
+			request_timeout = i
+		}
+	}
+	l.SetTimeout(time.Duration(request_timeout) * time.Second)
 
 	if err = l.Bind(params["bind_dn"], params["bind_password"]); err != nil {
 		Log.Warning("ldap: error binding backend: %v", err)
@@ -118,6 +128,11 @@ func (this LDAP) LoginForm() Form {
 				Name:        "base_dn",
 				Type:        "text",
 				Placeholder: "Base DN",
+			},
+			FormElement{
+				Name:        "request_timeout",
+				Type:        "number",
+				Placeholder: "Request timeout (in seconds)",
 			},
 		},
 	}
